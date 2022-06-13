@@ -1,0 +1,200 @@
+CS224/7
+Sec No. 5
+Erkin Aydın
+22002956
+
+part a(DC Motor)):
+
+-TRISB
+-PORTB
+
+-TRISE
+-PORTE
+
+part b):
+
+#include <p32xxxx.h>
+#include "pic32mx795f521l.c"
+int main(void) {
+ AD1PCFG = 0xFFFF;
+
+ DDPCON.JTAGEN = 0; // disable JTAG
+
+TRISB = 0xFF; //portB_1 is input.
+TRISD = 0xFC; //portD_1 is for output.
+while(1)
+{
+	//Here, buttons are assigned to control_1 and control_2 given in the schematics
+	PORTDbits.RD1 = PORTBbits.RB0;
+	PORTDbits.RD2 = PORTBbits.RB1;
+}
+
+}
+
+part c(Seven Segment)):
+
+-TRISA
+-PORTA
+
+-TRISE
+-PORTE
+
+part d):
+/*
+Configuration for the code below:
+
+Connect portA to J1 Port of 4 Digit Seven Segment Module
+Jumpers of portA are : 5V, pull down ( top one to left, other to right )
+
+Connect portE to J2 Port of 4 Digit Seven Segment Module
+Jumpers of portE are : 5V, pull down ( top one to left, other to right )
+
+*/
+#include "pic32mx795f521l.c"
+// Hexadecimal values for digits in 7 segment
+unsigned char binary_pattern[]={0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F};
+
+
+void main() {
+
+ AD1PCFG = 0xFFFF;      // Configure AN pins as digital I/O
+ JTAGEN_bit = 0;        // Disable JTAG
+    
+ TRISA = 0x00;  //portA is output to D
+ TRISE = 0X00;  //portE is output to AN
+
+int i = 4;
+
+ while(1)
+ {
+     if(i == 10)
+     {
+	i=1;
+     }	
+     // Digit 1
+     PORTA=binary_pattern[i];     	// Putting the value to the first digit
+     PORTE=0x01;                  		// Open first digit
+     Delay_ms(1);
+     
+     if(i == 1)				//We should put 9
+     {
+        // Digit 2
+        PORTA=binary_pattern[9]; 	// Putting 9 to the second digit
+        PORTE=0x02;			//Open second digit
+        Delay_ms(1);
+     }
+else {
+     // Digit 2
+     PORTA=binary_pattern[i – 1]; 	// Putting the value to the second digit
+     PORTE=0x02;			//Open second digit
+     Delay_ms(1);
+  }
+
+if(i == 1) {			//We should put 8
+// Digit 3
+     PORTA=binary_pattern[8];	// Putting 8 to the third digit
+     PORTE=0x04;			//Open third digit
+     Delay_ms(1);
+}
+else if(i == 2) {		//We should put 9
+// Digit 3
+     PORTA=binary_pattern[9];	// Putting 9 to the third digit
+     PORTE=0x04;			//Open third digit
+     Delay_ms(1);
+}
+else {  
+     // Digit 3
+     PORTA=binary_pattern[i – 2];	// Putting the value to the third digit
+     PORTE=0x04;			//Open third digit
+     Delay_ms(1);
+}
+
+if(i == 1) {			//We should put 7
+// Digit 4
+     PORTA=binary_pattern[7];	// Putting 7 to the fourth digit
+     PORTE=0x08;			//Open fourth digit
+     Delay_ms(1);
+}
+else if(i == 2) {		//We should put 8
+// Digit 4
+     PORTA=binary_pattern[8];	// Putting 8 to the fourth digit
+     PORTE=0x08;			//Open fourth digit
+     Delay_ms(1);
+}
+else if(i == 3) {		//We should put 9
+// Digit 4
+     PORTA=binary_pattern[9];	// Putting 9 to the fourth digit
+     PORTE=0x08;			//Open fourth digit
+     Delay_ms(1);
+}
+else
+ {
+     // Digit 4
+     PORTA=binary_pattern[i – 3];	// Putting the value to the fourth digit
+     PORTE=0x08;			//Open fourth digit
+     Delay_ms(1);
+ }
+}
+
+}//main
+part e(Building a Digital Counter)):
+
+-TRISB
+-PORTB
+
+-TRISA
+-PORTA
+
+part f):
+
+#include <p32xxxx.h>
+#include "pic32mx795f521l.c"
+
+//This function is for reversing bits
+unsigned char reverseDisplay(unsigned char c)
+{
+	unsigned char toReturn = 0x00;
+	for(int i = 0; i <= 7; i++)
+	{
+		toReturn[7-i] = (c & (1 << i)) != 0;//classical bit extracting.
+	}
+}
+//This is the main function
+int main(void) {
+ 
+AD1PCFG = 0xFFFF;
+ 
+DDPCON.JTAGEN = 0; // disable JTAG
+ 
+int prev = 0;//this will check how it should be displayed
+unsigned char toDisplay = 0;//this is used to mimick 8-bits of leds
+
+TRISB = 0xFF; //portB_1 is input.
+TRISA = 0x00; //portA_1 is for output.
+ while(1)
+ {
+   toDisplay = toDisplay + 0x01;
+   if(PORTBbits.RB2)
+    {
+	toDisplay = 0x01;
+    }
+    if(PORTBbits.RB1) //Checking for the button
+   {
+	prev = 1;
+   }
+   else if(PORTBbits.RB0) //Checking for the button
+  {
+	prev = 0;
+  }
+  if(prev)
+  {
+  	unsigned char reversed = reverseDisplay(toDisplay);
+  	PORTA = reversed;
+  }
+  else
+  {
+  	PORTA = toDisplay
+  }
+   Delay_ms(1000);
+ }
+}

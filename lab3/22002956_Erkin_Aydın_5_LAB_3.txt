@@ -1,0 +1,859 @@
+CS224
+Lab No:3
+Section No:5
+Erkin Aydın
+ID:22002956
+Date:16/03/2022
+
+########################################################
+########################################################
+########################################################
+##lab3_1 : For showing DisplayReverseOrderRecursively###
+########################################################
+########################################################
+########################################################
+
+
+	.text
+# CS224 Spring 2022, Program to be used in Lab3
+# March 7, 2022
+# 
+	li	$a0, 10 	#create a linked list with 10 nodes
+	jal	createLinkedList
+	
+# Linked list is pointed by $v0
+	move 	$s0, $v0
+	move	$a0, $v0	# Pass the linked list address in $a0
+	jal 	printLinkedList
+	
+	la $a0, line
+	li $v0, 4
+	syscall
+	
+#calling displayReverseOrderRecursively
+	
+	la $a0, testDisplayReverseOrderRecursively
+	li $v0, 4
+	syscall
+	
+	move $a0, $s0	#address of the first node of the original list is passed as parameter
+	jal displayReverseOrderRecursively
+	
+	
+	
+# Stop. 
+	li	$v0, 10
+	syscall
+	
+displayReverseOrderRecursively:
+	
+	bne $a0, 0, else1
+	jr $ra
+else1:
+	sub $sp, $sp, 8
+	sw $ra, 0($sp)		#storing the return address		
+	sw $a0, 4($sp)		#storing the node address
+	lw $t0, 0($a0)
+	move $a0, $t0
+	jal displayReverseOrderRecursively
+	
+	lw $ra, 0($sp)
+	
+	la	$a0, line
+	li	$v0, 4
+	syscall
+	
+	la	$a0, addressOfCurrentNodeLabel
+	li	$v0, 4
+	syscall
+	
+	lw	$a0, 4($sp)	# $sp: Address of current node
+	li	$v0, 34
+	syscall
+
+	
+	la	$a0, dataValueOfCurrentNode
+	li	$v0, 4
+	syscall
+	
+	lw $t0, 4($sp)		#$t0 = address of the node
+	lw $t1, 4($t0)		#$t1 = value of the node
+		
+	move	$a0, $t1	# $t1: Data of current node
+	li	$v0, 1		
+	syscall
+	addi $sp, $sp, 8
+	jr $ra
+	
+	
+createLinkedList:
+# $a0: No. of nodes to be created ($a0 >= 1)
+# $v0: returns list head
+# Node 1 contains 4 in the data field, node i contains the value 4*i in the data field.
+# By 4*i inserting a data value like this
+# when we print linked list we can differentiate the node content from the node sequence no (1, 2, ...).
+	addi	$sp, $sp, -24
+	sw	$s0, 20($sp)
+	sw	$s1, 16($sp)
+	sw	$s2, 12($sp)
+	sw	$s3, 8($sp)
+	sw	$s4, 4($sp)
+	sw	$ra, 0($sp) 	# Save $ra just in case we may want to call a subprogram
+	
+	move	$s0, $a0	# $s0: no. of nodes to be created.
+	li	$s1, 1		# $s1: Node counter
+# Create the first node: header.
+# Each node is 8 bytes: link field then data field.
+	li	$a0, 8
+	li	$v0, 9
+	syscall
+# OK now we have the list head. Save list head pointer 
+	move	$s2, $v0	# $s2 points to the first and last node of the linked list.
+	move	$s3, $v0	# $s3 now points to the list head.
+	sll	$s4, $s1, 2	
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	sw	$s4, 4($s2)	# Store the data value.
+	
+addNode:
+# Are we done?
+# No. of nodes created compared with the number of nodes to be created.
+	beq	$s1, $s0, allDone
+	addi	$s1, $s1, 1	# Increment node counter.
+	li	$a0, 8 		# Remember: Node size is 8 bytes.
+	li	$v0, 9
+	syscall
+# Connect the this node to the lst node pointed by $s2.
+	sw	$v0, 0($s2)
+# Now make $s2 pointing to the newly created node.
+	move	$s2, $v0	# $s2 now points to the new node.
+	sll	$s4, $s1, 2	
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	sw	$s4, 4($s2)	# Store the data value.
+	j	addNode
+allDone:
+# Make sure that the link field of the last node cotains 0.
+# The last node is pointed by $s2.
+	sw	$zero, 0($s2)
+	move	$v0, $s3	# Now $v0 points to the list head ($s3).
+	
+# Restore the register values
+	lw	$ra, 0($sp)
+	lw	$s4, 4($sp)
+	lw	$s3, 8($sp)
+	lw	$s2, 12($sp)
+	lw	$s1, 16($sp)
+	lw	$s0, 20($sp)
+	addi	$sp, $sp, 24
+	
+	jr	$ra
+#=========================================================
+printLinkedList:
+# Print linked list nodes in the following format
+# --------------------------------------
+# Node No: xxxx (dec)
+# Address of Current Node: xxxx (hex)
+# Address of Next Node: xxxx (hex)
+# Data Value of Current Node: xxx (dec)
+# --------------------------------------
+
+# Save $s registers used
+	addi	$sp, $sp, -20
+	sw	$s0, 16($sp)
+	sw	$s1, 12($sp)
+	sw	$s2, 8($sp)
+	sw	$s3, 4($sp)
+	sw	$ra, 0($sp) 	# Save $ra just in case we may want to call a subprogram
+
+# $a0: points to the linked list.
+# $s0: Address of current
+# s1: Address of next
+# $2: Data of current
+# $s3: Node counter: 1, 2, ...
+	move $s0, $a0	# $s0: points to the current node.
+	li   $s3, 0
+printNextNode:
+	beq	$s0, $zero, printedAll
+				# $s0: Address of current node
+	lw	$s1, 0($s0)	# $s1: Address of  next node
+	lw	$s2, 4($s0)	# $s2: Data of current node
+	addi	$s3, $s3, 1
+# $s0: address of current node: print in hex.
+# $s1: address of next node: print in hex.
+# $s2: data field value of current node: print in decimal.
+	la	$a0, line
+	li	$v0, 4
+	syscall		# Print line seperator
+	
+	la	$a0, nodeNumberLabel
+	li	$v0, 4
+	syscall
+	
+	move	$a0, $s3	# $s3: Node number (position) of current node
+	li	$v0, 1
+	syscall
+	
+	la	$a0, addressOfCurrentNodeLabel
+	li	$v0, 4
+	syscall
+	
+	move	$a0, $s0	# $s0: Address of current node
+	li	$v0, 34
+	syscall
+
+	la	$a0, addressOfNextNodeLabel
+	li	$v0, 4
+	syscall
+	move	$a0, $s1	# $s0: Address of next node
+	li	$v0, 34
+	syscall	
+	
+	la	$a0, dataValueOfCurrentNode
+	li	$v0, 4
+	syscall
+		
+	move	$a0, $s2	# $s2: Data of current node
+	li	$v0, 1		
+	syscall
+
+# Now consider next node.
+	move	$s0, $s1	# Consider next node.
+	j	printNextNode
+printedAll:
+# Restore the register values
+	lw	$ra, 0($sp)
+	lw	$s3, 4($sp)
+	lw	$s2, 8($sp)
+	lw	$s1, 12($sp)
+	lw	$s0, 16($sp)
+	addi	$sp, $sp, 20
+	jr	$ra
+#=========================================================		
+	.data
+line:	
+	.asciiz "\n --------------------------------------"
+
+nodeNumberLabel:
+	.asciiz	"\n Node No.: "
+	
+addressOfCurrentNodeLabel:
+	.asciiz	"\n Address of Current Node: "
+	
+addressOfNextNodeLabel:
+	.asciiz	"\n Address of Next Node: "
+	
+dataValueOfCurrentNode:
+	.asciiz	"\n Data Value of Current Node: "
+
+testDisplayReverseOrderRecursively:
+	.asciiz "\n Testing: DisplayReverseOrderRecursively"
+	
+displayNewlyCreatedListRecursively:
+	.asciiz "\n Displaying newly created Linked List (Recursively)"
+
+#End of lab3_1 : For showing DisplayReverseOrderRecursively
+
+########################################################
+########################################################
+########################################################
+##lab3_2 : For showing duplicateListIterative###########
+########################################################
+########################################################
+########################################################
+
+	.text
+# CS224 Spring 2022, Program to be used in Lab3
+# March 7, 2022
+# 
+	li	$a0, 10 	#create a linked list with 10 nodes
+	jal	createLinkedList
+	
+# Linked list is pointed by $v0
+	move 	$s0, $v0
+	move	$a0, $v0	# Pass the linked list address in $a0
+	jal 	printLinkedList
+	
+	la $a0, line
+	li $v0, 4
+	syscall
+	
+#calling duplicateListIterative
+	
+	move $a0, $s0	#address of the first node of the original list is passed as parameter
+	jal duplicateListIterative
+	
+	move $s1, $v0	#$s1 : address of the first node of newly created list
+	
+	la $a0, line
+	li $v0, 4
+	syscall
+	
+	la $a0, displayNewlyCreatedListRecursively
+	li $v0, 4
+	syscall
+	
+	move $a0, $s1
+	jal displayReverseOrderRecursively
+	
+# Stop. 
+	li	$v0, 10
+	syscall
+	
+displayReverseOrderRecursively:
+	
+	bne $a0, 0, else1
+	jr $ra
+else1:
+	sub $sp, $sp, 8
+	sw $ra, 0($sp)		#storing the return address		
+	sw $a0, 4($sp)		#storing the node address
+	lw $t0, 0($a0)
+	move $a0, $t0
+	jal displayReverseOrderRecursively
+	
+	lw $ra, 0($sp)
+	
+	la	$a0, line
+	li	$v0, 4
+	syscall
+	
+	la	$a0, addressOfCurrentNodeLabel
+	li	$v0, 4
+	syscall
+	
+	lw	$a0, 4($sp)	# $sp: Address of current node
+	li	$v0, 34
+	syscall
+
+	
+	la	$a0, dataValueOfCurrentNode
+	li	$v0, 4
+	syscall
+	
+	lw $t0, 4($sp)		#$t0 = address of the node
+	lw $t1, 4($t0)		#$t1 = value of the node
+		
+	move	$a0, $t1	# $t1: Data of current node
+	li	$v0, 1		
+	syscall
+	addi $sp, $sp, 8
+	jr $ra
+	
+duplicateListIterative:
+	# $a0: No. of nodes to be created ($a0 >= 1)
+# $v0: returns list head
+# Node 1 contains 4 in the data field, node i contains the value 4*i in the data field.
+# By 4*i inserting a data value like this
+# when we print linked list we can differentiate the node content from the node sequence no (1, 2, ...).
+	addi	$sp, $sp, -24
+	sw	$s0, 20($sp)
+	sw	$s1, 16($sp)
+	sw	$s2, 12($sp)
+	sw	$s3, 8($sp)
+	sw	$s4, 4($sp)
+	sw	$ra, 0($sp) 	# Save $ra just in case we may want to call a subprogram
+	
+	move	$s0, $a0	# $s0: address of the first node of the original list
+# Create the first node: header.
+# Each node is 8 bytes: link field then data field.
+	li	$a0, 12
+	li	$v0, 9
+	syscall
+# OK now we have the list head. Save list head pointer 
+	move	$s2, $v0	# $s2 points to the first and last node of the linked list.
+	move	$s3, $v0	# $s3 now points to the list head.
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	lw 	$t0, 4($s0)
+	sw	$t0, 4($s2)	# Store the first data value on the original linked list.
+	lw	$t0, 0($s0)	#address of the next node on the original list is taken
+	move	$s0, $t0	#next address of the original node is being pointed
+	
+addNode1:
+# Are we done?
+# No. of nodes created compared with the number of nodes to be created.
+	beq	$s0, $0, allDone1	#when the address of the node is 0x00000000, our process is over
+	li	$a0, 12 		# Remember: Node size is 8 bytes.
+	li	$v0, 9
+	syscall
+# Connect the this node to the lst node pointed by $s2.
+	sw	$v0, 0($s2)
+# Now make $s2 pointing to the newly created node.
+	move	$s2, $v0	# $s2 now points to the new node.
+	sll	$s4, $s1, 2	
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	lw	$t1, 4($s0)	# $t1 : value of the node
+	sw	$t1, 4($s2)	# Store the data value.
+	
+	lw	$t0, 0($s0)	#address of the next node on the original list is taken
+	move	$s0, $t0	#next address of the original node is being pointed
+	
+	j	addNode1
+allDone1:
+# Make sure that the link field of the last node cotains 0.
+# The last node is pointed by $s2.
+	sw	$zero, 0($s2)
+	move	$v0, $s3	# Now $v0 points to the list head ($s3).
+	
+# Restore the register values
+	lw	$ra, 0($sp)
+	lw	$s4, 4($sp)
+	lw	$s3, 8($sp)
+	lw	$s2, 12($sp)
+	lw	$s1, 16($sp)
+	lw	$s0, 20($sp)
+	addi	$sp, $sp, 24
+	
+	jr	$ra
+	
+	
+createLinkedList:
+# $a0: No. of nodes to be created ($a0 >= 1)
+# $v0: returns list head
+# Node 1 contains 4 in the data field, node i contains the value 4*i in the data field.
+# By 4*i inserting a data value like this
+# when we print linked list we can differentiate the node content from the node sequence no (1, 2, ...).
+	addi	$sp, $sp, -24
+	sw	$s0, 20($sp)
+	sw	$s1, 16($sp)
+	sw	$s2, 12($sp)
+	sw	$s3, 8($sp)
+	sw	$s4, 4($sp)
+	sw	$ra, 0($sp) 	# Save $ra just in case we may want to call a subprogram
+	
+	move	$s0, $a0	# $s0: no. of nodes to be created.
+	li	$s1, 1		# $s1: Node counter
+# Create the first node: header.
+# Each node is 8 bytes: link field then data field.
+	li	$a0, 8
+	li	$v0, 9
+	syscall
+# OK now we have the list head. Save list head pointer 
+	move	$s2, $v0	# $s2 points to the first and last node of the linked list.
+	move	$s3, $v0	# $s3 now points to the list head.
+	sll	$s4, $s1, 2	
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	sw	$s4, 4($s2)	# Store the data value.
+	
+addNode:
+# Are we done?
+# No. of nodes created compared with the number of nodes to be created.
+	beq	$s1, $s0, allDone
+	addi	$s1, $s1, 1	# Increment node counter.
+	li	$a0, 8 		# Remember: Node size is 8 bytes.
+	li	$v0, 9
+	syscall
+# Connect the this node to the lst node pointed by $s2.
+	sw	$v0, 0($s2)
+# Now make $s2 pointing to the newly created node.
+	move	$s2, $v0	# $s2 now points to the new node.
+	sll	$s4, $s1, 2	
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	sw	$s4, 4($s2)	# Store the data value.
+	j	addNode
+allDone:
+# Make sure that the link field of the last node cotains 0.
+# The last node is pointed by $s2.
+	sw	$zero, 0($s2)
+	move	$v0, $s3	# Now $v0 points to the list head ($s3).
+	
+# Restore the register values
+	lw	$ra, 0($sp)
+	lw	$s4, 4($sp)
+	lw	$s3, 8($sp)
+	lw	$s2, 12($sp)
+	lw	$s1, 16($sp)
+	lw	$s0, 20($sp)
+	addi	$sp, $sp, 24
+	
+	jr	$ra
+#=========================================================
+printLinkedList:
+# Print linked list nodes in the following format
+# --------------------------------------
+# Node No: xxxx (dec)
+# Address of Current Node: xxxx (hex)
+# Address of Next Node: xxxx (hex)
+# Data Value of Current Node: xxx (dec)
+# --------------------------------------
+
+# Save $s registers used
+	addi	$sp, $sp, -20
+	sw	$s0, 16($sp)
+	sw	$s1, 12($sp)
+	sw	$s2, 8($sp)
+	sw	$s3, 4($sp)
+	sw	$ra, 0($sp) 	# Save $ra just in case we may want to call a subprogram
+
+# $a0: points to the linked list.
+# $s0: Address of current
+# s1: Address of next
+# $2: Data of current
+# $s3: Node counter: 1, 2, ...
+	move $s0, $a0	# $s0: points to the current node.
+	li   $s3, 0
+printNextNode:
+	beq	$s0, $zero, printedAll
+				# $s0: Address of current node
+	lw	$s1, 0($s0)	# $s1: Address of  next node
+	lw	$s2, 4($s0)	# $s2: Data of current node
+	addi	$s3, $s3, 1
+# $s0: address of current node: print in hex.
+# $s1: address of next node: print in hex.
+# $s2: data field value of current node: print in decimal.
+	la	$a0, line
+	li	$v0, 4
+	syscall		# Print line seperator
+	
+	la	$a0, nodeNumberLabel
+	li	$v0, 4
+	syscall
+	
+	move	$a0, $s3	# $s3: Node number (position) of current node
+	li	$v0, 1
+	syscall
+	
+	la	$a0, addressOfCurrentNodeLabel
+	li	$v0, 4
+	syscall
+	
+	move	$a0, $s0	# $s0: Address of current node
+	li	$v0, 34
+	syscall
+
+	la	$a0, addressOfNextNodeLabel
+	li	$v0, 4
+	syscall
+	move	$a0, $s1	# $s0: Address of next node
+	li	$v0, 34
+	syscall	
+	
+	la	$a0, dataValueOfCurrentNode
+	li	$v0, 4
+	syscall
+		
+	move	$a0, $s2	# $s2: Data of current node
+	li	$v0, 1		
+	syscall
+
+# Now consider next node.
+	move	$s0, $s1	# Consider next node.
+	j	printNextNode
+printedAll:
+# Restore the register values
+	lw	$ra, 0($sp)
+	lw	$s3, 4($sp)
+	lw	$s2, 8($sp)
+	lw	$s1, 12($sp)
+	lw	$s0, 16($sp)
+	addi	$sp, $sp, 20
+	jr	$ra
+#=========================================================		
+	.data
+line:	
+	.asciiz "\n --------------------------------------"
+
+nodeNumberLabel:
+	.asciiz	"\n Node No.: "
+	
+addressOfCurrentNodeLabel:
+	.asciiz	"\n Address of Current Node: "
+	
+addressOfNextNodeLabel:
+	.asciiz	"\n Address of Next Node: "
+	
+dataValueOfCurrentNode:
+	.asciiz	"\n Data Value of Current Node: "
+
+testDisplayReverseOrderRecursively:
+	.asciiz "\n Testing: DisplayReverseOrderRecursively"
+	
+displayNewlyCreatedListRecursively:
+	.asciiz "\n Displaying newly created Linked List (Recursively)"
+
+#End of lab3_2 : For showing duplicateListIterative
+
+########################################################
+########################################################
+########################################################
+##lab3_3 : For showing duplicateListRecursive###########
+########################################################
+########################################################
+########################################################
+
+	.text
+# CS224 Spring 2022, Program to be used in Lab3
+# March 7, 2022
+# 
+	li	$a0, 10 	#create a linked list with 10 nodes
+	jal	createLinkedList
+	
+# Linked list is pointed by $v0
+	move 	$s0, $v0
+	move	$a0, $v0	# Pass the linked list address in $a0
+	jal 	printLinkedList
+	
+	la $a0, line
+	li $v0, 4
+	syscall
+	
+#calling duplicateListRecursive
+	
+	move $a0, $s0	#original list is used here
+	jal duplicateListRecursive
+	
+	move $s2, $v0	#$s2 : address of the first node of newly created list
+	
+	la $a0, line
+	li $v0, 4
+	syscall
+	
+	la $a0, displayNewlyCreatedListRecursively
+	li $v0, 4
+	syscall
+	
+	move $a0, $s2
+	jal displayReverseOrderRecursively
+	
+# Stop. 
+	li	$v0, 10
+	syscall
+	
+displayReverseOrderRecursively:
+	
+	bne $a0, 0, else1
+	jr $ra
+else1:
+	sub $sp, $sp, 8
+	sw $ra, 0($sp)		#storing the return address		
+	sw $a0, 4($sp)		#storing the node address
+	lw $t0, 0($a0)
+	move $a0, $t0
+	jal displayReverseOrderRecursively
+	
+	lw $ra, 0($sp)
+	
+	la	$a0, line
+	li	$v0, 4
+	syscall
+	
+	la	$a0, addressOfCurrentNodeLabel
+	li	$v0, 4
+	syscall
+	
+	lw	$a0, 4($sp)	# $sp: Address of current node
+	li	$v0, 34
+	syscall
+
+	
+	la	$a0, dataValueOfCurrentNode
+	li	$v0, 4
+	syscall
+	
+	lw $t0, 4($sp)		#$t0 = address of the node
+	lw $t1, 4($t0)		#$t1 = value of the node
+		
+	move	$a0, $t1	# $t1: Data of current node
+	li	$v0, 1		
+	syscall
+	addi $sp, $sp, 8
+	jr $ra
+	
+duplicateListRecursive:
+	
+	bne $a0, 0, else2
+	jr $ra
+else2:
+	sub $sp, $sp, 12
+	sw $ra, 0($sp)		#storing the return address		
+	sw $a0, 4($sp)		#storing the node address
+	lw $t0, 0($a0)
+	
+	li $a0, 12 		# Remember: Node size is 8 bytes.
+	li $v0, 9
+	syscall			#new node is created.
+	
+	sw $v0, 8($sp)		#address of the newly created node is stored
+	move $t3, $0		#$t3 will be used to link the list recursively. Thus, I initialize it to 0 again and again
+				#to be sure
+	move $a0, $t0
+	jal duplicateListRecursive
+	
+	lw $ra, 0($sp)
+	
+	lw $t0, 4($sp)		#$t0 = address of the node
+	lw $t1, 4($t0)		#$t1 = value of the node
+	lw $t2, 8($sp)		#$t2 = address of a node of the newly created list
+	sw $t1, 4($t2)		#value of the original node is stored to the newly created linked list
+	sw $t3, 0($t2)		#linking the list
+	move $t3, $t2		#for the next node, since current node should be coming later than that,
+				#we store the address of current node
+				
+	lw $v0, 8($sp)		#Fixing the return value
+	addi $sp, $sp, 12
+	jr $ra
+	
+	
+createLinkedList:
+# $a0: No. of nodes to be created ($a0 >= 1)
+# $v0: returns list head
+# Node 1 contains 4 in the data field, node i contains the value 4*i in the data field.
+# By 4*i inserting a data value like this
+# when we print linked list we can differentiate the node content from the node sequence no (1, 2, ...).
+	addi	$sp, $sp, -24
+	sw	$s0, 20($sp)
+	sw	$s1, 16($sp)
+	sw	$s2, 12($sp)
+	sw	$s3, 8($sp)
+	sw	$s4, 4($sp)
+	sw	$ra, 0($sp) 	# Save $ra just in case we may want to call a subprogram
+	
+	move	$s0, $a0	# $s0: no. of nodes to be created.
+	li	$s1, 1		# $s1: Node counter
+# Create the first node: header.
+# Each node is 8 bytes: link field then data field.
+	li	$a0, 8
+	li	$v0, 9
+	syscall
+# OK now we have the list head. Save list head pointer 
+	move	$s2, $v0	# $s2 points to the first and last node of the linked list.
+	move	$s3, $v0	# $s3 now points to the list head.
+	sll	$s4, $s1, 2	
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	sw	$s4, 4($s2)	# Store the data value.
+	
+addNode:
+# Are we done?
+# No. of nodes created compared with the number of nodes to be created.
+	beq	$s1, $s0, allDone
+	addi	$s1, $s1, 1	# Increment node counter.
+	li	$a0, 8 		# Remember: Node size is 8 bytes.
+	li	$v0, 9
+	syscall
+# Connect the this node to the lst node pointed by $s2.
+	sw	$v0, 0($s2)
+# Now make $s2 pointing to the newly created node.
+	move	$s2, $v0	# $s2 now points to the new node.
+	sll	$s4, $s1, 2	
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	sw	$s4, 4($s2)	# Store the data value.
+	j	addNode
+allDone:
+# Make sure that the link field of the last node cotains 0.
+# The last node is pointed by $s2.
+	sw	$zero, 0($s2)
+	move	$v0, $s3	# Now $v0 points to the list head ($s3).
+	
+# Restore the register values
+	lw	$ra, 0($sp)
+	lw	$s4, 4($sp)
+	lw	$s3, 8($sp)
+	lw	$s2, 12($sp)
+	lw	$s1, 16($sp)
+	lw	$s0, 20($sp)
+	addi	$sp, $sp, 24
+	
+	jr	$ra
+#=========================================================
+printLinkedList:
+# Print linked list nodes in the following format
+# --------------------------------------
+# Node No: xxxx (dec)
+# Address of Current Node: xxxx (hex)
+# Address of Next Node: xxxx (hex)
+# Data Value of Current Node: xxx (dec)
+# --------------------------------------
+
+# Save $s registers used
+	addi	$sp, $sp, -20
+	sw	$s0, 16($sp)
+	sw	$s1, 12($sp)
+	sw	$s2, 8($sp)
+	sw	$s3, 4($sp)
+	sw	$ra, 0($sp) 	# Save $ra just in case we may want to call a subprogram
+
+# $a0: points to the linked list.
+# $s0: Address of current
+# s1: Address of next
+# $2: Data of current
+# $s3: Node counter: 1, 2, ...
+	move $s0, $a0	# $s0: points to the current node.
+	li   $s3, 0
+printNextNode:
+	beq	$s0, $zero, printedAll
+				# $s0: Address of current node
+	lw	$s1, 0($s0)	# $s1: Address of  next node
+	lw	$s2, 4($s0)	# $s2: Data of current node
+	addi	$s3, $s3, 1
+# $s0: address of current node: print in hex.
+# $s1: address of next node: print in hex.
+# $s2: data field value of current node: print in decimal.
+	la	$a0, line
+	li	$v0, 4
+	syscall		# Print line seperator
+	
+	la	$a0, nodeNumberLabel
+	li	$v0, 4
+	syscall
+	
+	move	$a0, $s3	# $s3: Node number (position) of current node
+	li	$v0, 1
+	syscall
+	
+	la	$a0, addressOfCurrentNodeLabel
+	li	$v0, 4
+	syscall
+	
+	move	$a0, $s0	# $s0: Address of current node
+	li	$v0, 34
+	syscall
+
+	la	$a0, addressOfNextNodeLabel
+	li	$v0, 4
+	syscall
+	move	$a0, $s1	# $s0: Address of next node
+	li	$v0, 34
+	syscall	
+	
+	la	$a0, dataValueOfCurrentNode
+	li	$v0, 4
+	syscall
+		
+	move	$a0, $s2	# $s2: Data of current node
+	li	$v0, 1		
+	syscall
+
+# Now consider next node.
+	move	$s0, $s1	# Consider next node.
+	j	printNextNode
+printedAll:
+# Restore the register values
+	lw	$ra, 0($sp)
+	lw	$s3, 4($sp)
+	lw	$s2, 8($sp)
+	lw	$s1, 12($sp)
+	lw	$s0, 16($sp)
+	addi	$sp, $sp, 20
+	jr	$ra
+#=========================================================		
+	.data
+line:	
+	.asciiz "\n --------------------------------------"
+
+nodeNumberLabel:
+	.asciiz	"\n Node No.: "
+	
+addressOfCurrentNodeLabel:
+	.asciiz	"\n Address of Current Node: "
+	
+addressOfNextNodeLabel:
+	.asciiz	"\n Address of Next Node: "
+	
+dataValueOfCurrentNode:
+	.asciiz	"\n Data Value of Current Node: "
+
+testDisplayReverseOrderRecursively:
+	.asciiz "\n Testing: DisplayReverseOrderRecursively"
+	
+displayNewlyCreatedListRecursively:
+	.asciiz "\n Displaying newly created Linked List (Recursively)"
+
+#End of lab3_3 : For showing duplicateListRecursive

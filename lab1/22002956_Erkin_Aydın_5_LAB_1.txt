@@ -1,0 +1,535 @@
+CS224
+Lab No:1
+Section No:5
+Erkin Aydın
+ID:22002956
+Date:23/02/2022
+
+## Start of Program1
+## Program1.asm - prints out "hello world"
+##
+##	a0 - points to the string
+##
+
+#################################
+#					 	#
+#		text segment		#
+#						#
+#################################
+
+	.text		
+	.globl __start 
+
+__start:		# execution starts here
+	la $a0,str	# put string address into a0
+	li $v0,4	# system call to print
+	syscall		#   out a string
+
+	li $v0,10  # system call to exit
+	syscall	#    bye bye
+
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+	.data
+str:	.asciiz "Helllo Kenan Çağrı Hırlak!\n"
+n:	.word	10
+
+##
+## end of file Program1.asm
+
+
+
+## Start of Program2
+## Program2.asm asks user for temperature in Celsius,
+##  converts to Fahrenheit, prints the result.
+##
+##	v0 - reads in Celsius
+##	t0 - holds Fahrenheit result
+##	a0 - points to output strings
+##
+
+#################################
+#					 	#
+#		text segment		#
+#						#
+#################################
+
+	.text		
+	.globl __start	
+
+__start:
+	la $a0,prompt	# output prompt message on terminal
+	li $v0,4	# syscall 4 prints the string
+	syscall
+
+	li $v0, 5	# syscall 5 reads an integer
+	syscall
+
+	mul $t0,$v0,9	# to convert,multiply by 9,
+	div $t0,$t0,5	# divide by 5, then
+	add $t0,$t0,32	# add 32
+
+	la $a0,ans1	# print string before result
+	li $v0,4
+	syscall
+
+	move $a0,$t0	# print integer result
+	li $v0,1		# using syscall 1
+	syscall
+
+	la $a0,endl	# system call to print
+	li $v0,4		# out a newline
+	syscall
+
+	li $v0,10		# system call to exit
+	syscall		#    bye bye
+
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+	.data
+prompt:	.asciiz "Enter temperature (Celsius): "
+ans1:	.asciiz "The temperature in Fahrenheit is "
+endl:	.asciiz "\n"
+
+##
+## end of file Program2.asm
+
+
+##	Start of Program3
+##	Program3.asm is a loop implementation
+##	of the Fibonacci function
+##        
+
+#################################
+#					 	#
+#		text segment		#
+#						#
+#################################
+
+	.text		
+.globl __start
+ 
+__start:		# execution starts here
+	li $a0,3	# to calculate fib(7)
+	jal fib		# call fib
+	move $a0,$v0	# print result
+	li $v0, 1
+	syscall
+
+	la $a0, endl	# print newline
+	li $v0,4
+	syscall
+
+	li $v0,10
+	syscall		# bye bye
+
+#------------------------------------------------
+
+
+fib:	move $v0,$a0	# initialise last element
+	blt $a0,2,done	# fib(0)=0, fib(1)=1
+
+	li $t0,0	# second last element
+	li $v0,1	# last element
+
+loop:	
+	add $t1,$t0,$v0	# get next value
+	move $t0,$v0	# update second last
+	move $v0,$t1	# update last element
+	sub $a0,$a0,1	# decrement count
+	bgt $a0,1,loop	# exit loop when count=0
+done:	jr $ra
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+	.data
+endl:	.asciiz "\n"
+
+##
+## end of Program3.asm
+
+#########################################################
+####################### Part 3: Using MIPS for mathematical calculations
+#########################################################
+
+#$s0 = value of a
+#$s1 = value of b
+#$s2 = a^2 - 2ab
+#$s3 = (a-b)%b
+#$s4 = the answer
+
+
+	.text		
+.globl __start
+ 
+__start:				# execution starts here
+
+ask:	la $a0, prompt1
+	li $v0, 4
+	syscall
+	
+	li $v0, 5 			#Asking user to enter a
+	syscall
+	
+	add $s0, $v0, $0		# $s0 = a
+	
+	la $a0, prompt2
+	li $v0, 4
+	syscall
+	
+	li $v0, 5 			#Asking user to enter a
+	syscall
+	
+	add $s1, $v0, $0		# $s0 = a
+	
+	mul $t0, $s0, $s0
+	mul $t1, $s0, $s1
+	mul $t1, $t1, 2
+	sub $s2, $t0, $t1
+	
+	sub $t0, $s0, $s1
+	div $t0, $s1
+	
+	mfhi $s3
+	
+	div $s2, $s3
+	
+	mflo $s4
+	
+	move $a0, $s4
+	li $v0, 1
+	syscall
+		
+	li $v0,10  			# system call to exit
+	syscall				#bye bye
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+	.data
+prompt1:	.asciiz "Enter a value: "
+prompt2:	.asciiz "Enter b value: "
+
+
+##
+## end of Lab1_3.asm
+
+#########################################################
+####################### Part 4: Using MIPS for implementing a program with a simple menu that involve loop
+#########################################################
+
+#$s0 = size of the array
+#$s1 = desired operation from the menu (assumed the user gives valid values)
+#$s2 = input number for num1 and num3
+#$s2 = 1
+#$s3 = 2
+#$s4 = 3
+#$s5 = 4
+#$t0 = whether we reached to the end of the array or not
+#$t1 = iteration purposes
+
+
+	.text		
+.globl __start
+ 
+__start:				# execution starts here
+
+ask:	la $a0, prompt1
+	li $v0, 4
+	syscall
+	
+	li $v0, 5 			#Asking user to enter a number that will determine the size of the array
+	syscall
+	
+	add $s0, $v0, $0		# $s0 = input value
+	
+	slt $t0, $s0, $0 		# if $s0 < 0, branch will be taken
+	bne $t0, $0, repeat
+	addi $s1, $0, 100
+	slt $t0, $s1, $s0 		# if 100 < $s0, branch will be taken
+	beq $t0, $0, go	
+	
+repeat:	
+	la $a0, prompt2			#printing "Please enter a number between 0 and 100, both inclusive."
+	li $v0, 4
+	syscall
+	
+	la $a0, endl
+	li $v0, 4
+	syscall				#ending the line.
+	
+	j ask
+	
+go:	
+	beq $s0, $0, menu
+gorep:	addi $t1, $t1, 1 		#to iterate over the array
+	
+	la $a0, prompt3
+	li $v0, 4
+	syscall				#printing "Enter values: "
+	
+	li $v0, 5
+	syscall				#waiting for an input
+	
+	add $t2, $v0, $0 		#$t2 = $v0 = input value
+	
+	sw $t2, array($t3) 		# initializing the location in the array
+	addi $t3, $t3, 4   		# one word forward on the array
+	
+	slt $t0, $t1, $s0
+	bne $t0, $0, gorep 		# if the last element hasn't been entered, number will be asked again.
+					#if not, the array will be displayed first, then will be twisted and 
+					#displayed again
+					
+	addi $s2, $0, 1			#for menu, ve store 1, 2, 3 and 4
+	addi $s3, $0, 2
+	addi $s4, $0, 3
+	addi $s5, $0, 4
+	
+menu:
+	
+	la $a0, prompt4
+	li $v0, 4
+	syscall				#to the next line we go
+	
+	la $a0, endl
+	li $v0, 4
+	syscall	
+	
+	la $a0, prompt5
+	li $v0, 4
+	syscall				#to the next line we go
+	
+	la $a0, endl
+	li $v0, 4
+	syscall	
+	
+	la $a0, prompt6
+	li $v0, 4
+	syscall				#to the next line we go
+	
+	la $a0, endl
+	li $v0, 4
+	syscall	
+	
+	la $a0, prompt7
+	li $v0, 4
+	syscall				#to the next line we go
+	
+	la $a0, endl
+	li $v0, 4
+	syscall	
+	
+	la $a0, prompt8
+	li $v0, 4
+	syscall				#to the next line we go
+	
+	li $v0, 5 			#Asking user to enter a number for the menu
+	syscall
+
+	add $s1, $v0, $0		#Storing the choice of the user
+
+	
+	beq $s1, $s2, num1
+	beq $s1, $s3, num2
+	beq $s1, $s4, num3
+	beq $s1, $s5, num4
+	
+num1:
+	#$s2 = input
+	#$t1 = iteration purposes
+	#$t2 =  value inside the array
+	#$t3 = sum of small numbers
+	#$t4 = small or not
+	#$t5 = reached to the end or not
+	#$t6 = numbers processed
+	la $a0, prompt9
+	li $v0, 4
+	syscall	
+
+	li $v0, 5 			#Asking user to enter a number for the menu
+	syscall
+
+	add $s2, $v0, $0
+
+	add $t1, $0, $0
+	add $t6, $0, $0
+	add $t3, $0, $0
+	
+rep1:	
+	addi $t1, $t1, 1
+	lw $t2, array($t6)
+	slt $t4, $t2, $s2
+	beq $t4, $0, check1
+	add $t3, $t3, $t2
+	
+check1: 	
+	addi $t6, $t6, 4
+	slt $t5, $t1, $s0
+	bne $t5, $0, rep1
+	
+	la $a0, prompt10
+	li $v0, 4
+	syscall
+	
+	add $a0, $t3, $0
+	la $v0, 1
+	syscall
+	
+	la $a0, endl
+	li $v0, 4
+	syscall	
+	
+	j menu
+	
+num2:
+	#$t1 = iteration purposes
+	#$t2 = 2
+	#$t3 = value inside the array
+	#$t4 = num of even numbers
+	#$t5 = num of odd numbers
+	#$t6 = remainder
+	#$t7 = reached to the end or not
+	#$t8 = numbers processed
+	addi $t1, $0, 0
+	addi $t2, $0, 2
+	addi $t3, $0, 0
+	addi $t4, $0, 0
+	addi $t5, $0, 0
+	addi $t8, $0, 0
+rep2:	addi $t1, $t1, 1
+	lw $t3, array($t8)
+	div $t3, $t2
+	mfhi $t6
+	bne $t6, $0, check2 
+	addi $t4, $t4, 1	
+	
+check2: 
+	addi $t8, $t8, 4
+	slt $t7, $t1, $s0
+	bne $t7, $0, rep2
+	
+	la $a0, prompt11
+	li $v0, 4
+	syscall
+	
+	add $a0, $t4, $0
+	la $v0, 1
+	syscall
+	
+	la $a0, endl
+	li $v0, 4
+	syscall	
+	
+	la $a0, prompt12
+	li $v0, 4
+	syscall
+	
+	sub $t5, $s0, $t4
+	
+	add $a0, $t5, $0
+	la $v0, 1
+	syscall
+	
+	la $a0, endl
+	li $v0, 4
+	syscall	
+	
+	j menu
+
+num3:
+	#$s2 = input
+	#$t1 = iteration purposes
+	#$t2 =  value inside the array
+	#$t3 = num of occurances of undivisible values
+	#$t4 = remainder
+	#$t5 = reached to the end or not
+	#$t6 = numbers processed
+	la $a0, prompt9
+	li $v0, 4
+	syscall	
+
+	li $v0, 5 			#Asking user to enter a number for the menu
+	syscall
+
+	add $s2, $v0, $0
+
+	add $t1, $0, $0
+	add $t6, $0, $0
+	add $t3, $0, $0
+	
+rep3:	
+	addi $t1, $t1, 1
+	lw $t2, array($t6)
+	div $t2, $s2
+	mfhi $t4
+	beq $t4, $0, check3
+	add $t3, $t3, 1
+	
+check3: 	
+	addi $t6, $t6, 4
+	slt $t5, $t1, $s0
+	bne $t5, $0, rep3
+	
+	la $a0, prompt13
+	li $v0, 4
+	syscall
+	
+	add $a0, $t3, $0
+	la $v0, 1
+	syscall
+	
+	la $a0, endl
+	li $v0, 4
+	syscall	
+	
+	j menu
+
+num4:
+	li $v0,10  			# system call to exit
+	syscall				#bye bye
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+	.data
+array:		.space 400
+prompt1:	.asciiz "Enter the length of the array: "
+prompt2:	.asciiz "Please enter a number between 0 and 100, both inclusive."
+prompt3:	.asciiz "Enter values: "
+prompt4:	.asciiz "To find summation of numbers less than your input=> enter 1"
+prompt5:	.asciiz "To fint the numbers of even and odd numbers and display them=> enter 2 "
+prompt6:	.asciiz "To display number of array elements not divisible by a desired value=> enter 3"
+prompt7:	.asciiz "To quit=> enter 4"
+prompt8:	.asciiz "Enter: "
+prompt9:	.asciiz "Vhat is your desired value? Enter: "
+prompt10:	.asciiz "Sum of values smaller then your input: "
+prompt11:	.asciiz "Num of even values: "
+prompt12:	.asciiz "Num of odd values: "
+prompt13:	.asciiz "Num of occurences: "
+empty:		.asciiz " "
+endl:		.asciiz "\n"
+
+##
+## end of Lab1_4.asm
+

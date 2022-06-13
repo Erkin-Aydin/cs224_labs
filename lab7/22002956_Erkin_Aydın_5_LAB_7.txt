@@ -1,0 +1,188 @@
+//----------------------------
+CS224 
+Lab 07
+Sec 05
+Erkin Aydın
+22002956
+//----------------------------
+//My Lab Partner:Disclaimer! Due to the that unexpected problems that appeared in the lab, I had to find 
+//a partner in the lab. I didn't have any partner in the preliminary.
+CS224 
+Lab 07
+Sec 05
+Arda Güven Çiftçi
+21801763
+//-----------------------------
+
+
+PART B
+void Wait() {
+ Delay_ms(1000);
+}
+
+void main() {
+
+ AD1PCFG = 0xFFFF;
+
+ DDPCON.JTAGEN = 0; // disable JTAG
+
+ TRISA = 0x0000;  //portA is output to turn on LEDs.
+ TRISE = 0XFFFF;  //portE is inputs to read push-buttons.
+
+ LATA = 0Xffff;
+ LATE = 0X0000;
+
+ // single LED blink
+ LATA=0xffff;
+ Wait();
+ LATA=0x0000;
+ Wait();
+
+ while(1)
+ {
+  // To make DC Motor turn counterclockwise, assign value of Button 1 and to make turn clockwise, assign value of Button 0
+  PORTAbits.RA1 = PORTEbits.RE1;  
+  PORTAbits.RA2 = PORTEbits.RE0;  
+ }
+}
+---------------------------------------------
+PART C
+/*
+Configuration for the code below:
+
+Connect portA to J1 Port of 4 Digit Seven Segment Module
+Jumpers of portA are : 5V, pull down ( top one to left, other to right )
+
+Connect portE to J2 Port of 4 Digit Seven Segment Module
+Jumpers of portE are : 5V, pull down ( top one to left, other to right )
+
+*/
+
+
+// Hexadecimal values for digits in 7 segment
+unsigned char binary_pattern[]={0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F};
+ //Counters
+ int firstDigit = 1;
+ int secondDigit = 2;
+ int thirdDigit = 3;
+ int fourthDigit = 4;
+
+void main() {
+
+ AD1PCFG = 0xFFFF;      // Configure AN pins
+ JTAGEN_bit = 0;        // Disable JTAG
+
+ TRISA = 0x00;  //portA is output to D
+ TRISE = 0X00;  //portE is output to AN
+ 
+ LATA = 0x00;
+ LATB = 0x00;
+
+ while(1)
+ {
+
+      //first if statements checks if the value reached 10 or not
+      //delay_ms to avoid confusion between codes
+      if ( firstDigit == 10 )
+      {
+        firstDigit = 1;
+      }
+      PORTA=binary_pattern[firstDigit];  // Put current value at firstDigit to the first digit
+      PORTE=0x01;
+      Delay_ms(1);                   //waits 1ms here
+
+      // Digit 2
+      if ( secondDigit == 10 )
+      {
+        secondDigit = 1;
+      }
+      PORTA=binary_pattern[secondDigit];  // Put 2 to the second digit
+      PORTE=0x02;
+
+      Delay_ms(1);
+
+      // Digit 3
+      if ( thirdDigit == 10 )
+      {
+        thirdDigit = 1;
+      }
+      PORTA=binary_pattern[thirdDigit];  // Put current value at thirdDigit to the third digit
+      PORTE=0x04;
+      Delay_ms(1);
+      // Digit 4
+      if ( fourthDigit == 10 )
+      {
+        fourthDigit = 1;
+      }
+      PORTA=binary_pattern[fourthDigit];   // Put current value at fourthDigit to the forth digit
+      PORTE=0x08;
+      Delay_ms(1);
+
+     firstDigit++;                           //Increment firstDigit
+     secondDigit++;                         //Increment secondDigit
+     thirdDigit++;                          //Increment thirdDigit
+     fourthDigit++;                          //Increment fourthDigit                             //Reset loop for the next loop
+ }
+
+}
+
+PART D
+
+//This function is for reversing bits
+/*
+int i;
+unsigned char reverseDisplay(unsigned char* c)
+{
+	unsigned char toReturn = 0x00;
+	for(i = 0; i <= 7; i++)
+	{
+		toReturn[7-i] = (c & (1 << i)) != 0;//classical bit extracting.
+	}return toReturn;
+}
+   */
+int prev = 0;//this will check how it should be displayed
+unsigned char toDisplay;//this is used to mimick 8-bits of leds
+unsigned char reversed;
+int i;
+//This is the main function
+int main(void) {
+
+AD1PCFG = 0xFFFF;
+
+DDPCON.JTAGEN = 0; // disable JTAG
+
+toDisplay = 0x00;
+
+TRISE = 0xFF; //portB_1 is input.
+TRISA = 0x00; //portA_1 is for output.
+
+LATA = 0x00;
+LATE = 0xff;
+ while(1)
+ {
+   toDisplay = toDisplay +0x01;
+   if(PORTEbits.RE2)
+    {
+	toDisplay = 0x00;
+    }
+    if(PORTEbits.RE1) //Checking for the button
+   {
+	prev = 1;
+   }
+   else if(PORTEbits.RE0) //Checking for the button
+  {
+	prev = 0;
+  }
+  if(prev)
+  {
+
+          reversed = (toDisplay & (1 << i)) != 0;
+  }
+  else
+  {
+  	PORTA = PORTE;
+  }
+   Delay_ms(1000);
+ }
+}
+

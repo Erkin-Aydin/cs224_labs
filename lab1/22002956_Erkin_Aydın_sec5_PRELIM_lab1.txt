@@ -1,0 +1,339 @@
+CS224
+Lab No: 1
+Sec No: 5
+Erkin Aydın
+22002956
+21/02/2022
+
+#########################################################
+####################### Part 1:CreateAndTwist
+#########################################################
+
+	.text		
+.globl __start
+ 
+__start:				# execution starts here
+
+	la $a0, prompt1
+	li $v0, 4
+	syscall
+	
+ask:	li $v0, 5 			#Asking user to enter a number that will determine the size of the array
+	syscall
+	
+	add $s0, $v0, $0		# $s0 = input value
+	
+	slt $t0, $s0, $0 		# if $s0 < 0, branch will be taken
+	bne $t0, $0, repeat
+	addi $s1, $0, 20
+	slt $t0, $s1, $s0 		# if 20 < $s0, branch will be taken
+	beq $t0, $0, go			#if there is no need to branch, numbers will be entered by the user
+	
+repeat:	
+	la $a0, prompt2			#printing "Please enter a number between 0 and 20: "
+	li $v0, 4
+	syscall
+	j ask
+	
+go:	
+	beq $s0, $0, show
+	addi $t1, $t1, 1 		#to iterate over the array
+	
+	la $a0, prompt3
+	li $v0, 4
+	syscall				#printing "Please enter number: "
+	
+	li $v0, 5
+	syscall				#waiting for an input
+	
+	add $t2, $v0, $0 		#$t2 = $v0 = input value
+	
+	sw $t2, array($t3) 		# initializing the location in the array
+	addi $t3, $t3, 4   		# one word forward on the array
+	
+	slt $t0, $t1, $s0
+	bne $t0, $0, go 		# if the last element hasn't been entered, number will be asked again.
+					#if not, the array will be displayed first, then will be twisted and 
+					#displayed again
+
+	addi $s2, $t3, 0		#$s2 = last index of the array
+	
+show:	jal display
+	jal twist
+	
+	li $v0, 10
+	syscall
+
+
+twist:
+	beq $s0, $0, display
+	beq $s0, 1, display
+	srl $s3, $s2, 1
+	and $t4, $s0, 0x00000001 	# if $s3 is even, then $t4 = 0, otherwise $t4 = 1
+	beq $t4, $0, a
+	addi $s3, $s3, 2 		# to iterate over the array properly, if $3 is odd
+a:	addi $t3, $0, 0 		#going back to the beginning of the array
+
+	add $t4, $t3, $s3		#t4 = the location where the numbers from the beginning of the array will be switched
+b:	lw $t2, array($t3)		#this is the 
+	lw $t5, array($t4)		#part numbers
+	sw $t5, array($t3)		#are
+	sw $t2, array($t4)		#switched
+	addi $t3, $t3, 4		#for iteration purposes, both addresses are incremented by 4
+	addi $t4, $t4, 4
+	bne $s2, $t4, b
+
+display:
+	la $a0, endl
+	li $v0, 4
+	syscall				#to the next line we go
+	addi $t3, $0, 0 		#going back to the beginning of the array
+	la $a0, prompt4
+	li $v0, 4
+	syscall				#printing "Array: "
+	beq $s0, $0, end
+	
+again:
+	lw $a0, array($t3)
+	li $v0, 1
+	syscall				#printing array values
+	la $a0, empty
+	li $v0, 4
+	syscall				#printing the space between array values
+	addi $t3, $t3, 4
+	slt $t0, $t3, $s2		#if we reached to the end of the array, we are done printing values.
+	bne $t0, $0, again		#if not, we continue to print values
+	
+	la $a0, endl
+	li $v0, 4
+	syscall				#to the next line we go
+	addi $t3, $0, 0 		#going back to the beginning of the array, for twist
+end:	jr $ra
+	
+li $v0,10  				# system call to exit
+syscall					#bye bye
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+	.data
+array:		.space 80
+prompt1:	.asciiz "How many numbers you want in your array? Enter: "
+prompt2:	.asciiz "Please enter a number between 0 and 20: "
+prompt3:	.asciiz "Enter number: "
+prompt4:	.asciiz "Array: "
+empty:		.asciiz " "
+endl:		.asciiz "\n"
+
+##
+## end of CreateAndTwist.asm
+
+
+#########################################################
+####################### Part 2: CheckBothHalfsIdentical
+#########################################################	
+	.text		
+.globl __start
+ 
+__start:					# execution starts here
+
+	la $a0, prompt1
+	li $v0, 4
+	syscall					#printing "How many numbers you want in your array? Enter: "
+	
+ask:	li $v0, 5 				#Asking user to enter a number
+	syscall
+	
+	add $s0, $v0, $0 			# $s0 = input value
+	
+	slt $t0, $s0, $0 			# if $s0 < 0, branch will be taken
+	bne $t0, $0, repeat
+	addi $s1, $0, 20
+	slt $t0, $s1, $s0 			# if 20 < $s0, branch will be taken
+	beq $t0, $0, go				#if there is no need to branch, numbers will be entered by the user
+	
+repeat:	
+	la $a0, prompt2				#printing "Please enter a number between 0 and 20: "
+	li $v0, 4
+	syscall
+	j ask
+	
+go:	
+	beq $s0, $0, show
+	addi $t1, $t1, 1 			#to iterate over the array
+	
+	la $a0, prompt3
+	li $v0, 4
+	syscall					#printing "Please enter number: "
+	
+	li $v0, 5
+	syscall					#waiting for an input
+	
+	add $t2, $v0, $0 			#$t2 = $v0 = input value
+	
+	sw $t2, array($t3) 			# initializing the location in the array
+	addi $t3, $t3, 4   			# one word forward on the array
+	
+	slt $t0, $t1, $s0
+	bne $t0, $0, go 			# if the last element hasn't been entered, number will be asked again.
+						#if not, the array will be displayed first, then will be twisted and 
+						#displayed again
+
+	addi $s2, $t3, 0			#$s2 = last index of the array
+	
+show:	jal display
+	jal checkhalfs
+	
+	li $v0, 10
+	syscall
+
+display:
+	la $a0, endl
+	li $v0, 4
+	syscall					#to the next line we go
+	addi $t3, $0, 0 			#going back to the beginning of the array
+	la $a0, prompt4
+	li $v0, 4
+	syscall
+	beq $s0, $0, end			#printing "Array: "
+	
+again:
+	lw $a0, array($t3)
+	li $v0, 1
+	syscall					#printing array values
+	la $a0, empty
+	li $v0, 4
+	syscall					#printing the space between array values
+	addi $t3, $t3, 4
+	slt $t0, $t3, $s2			#if we reached to the end of the array, we are done printing values.
+	bne $t0, $0, again			#if not, we continue to print values
+	
+	la $a0, endl
+	li $v0, 4
+	syscall					#to the next line we go
+	addi $t3, $0, 0				#going back to the beginning of the array
+end:	jr $ra
+
+checkhalfs:
+	beq $s0, $0, c
+	beq $s0, 1, c
+	srl $s3, $s2, 1
+	and $t4, $s0, 0x00000001 		# if $s3 is even, then $t4 = 0, otherwise $t4 = 1
+	beq $t4, $0, a
+	addi $s3, $s3, 2 			# to iterate over the array properly, if $3 is odd
+a:	addi $t3, $0, 0 			#going back to the beginning of the array
+
+	add $t4, $t3, $s3
+	
+b:	lw $t2, array($t3)			#loading values in the arrays to temporary variables
+	lw $t5, array($t4)
+	bne $t2, $t5, d				#if they are not equal, we are done, arrays two halfs are not identical
+	addi $t3, $t3, 4			#if not, to continue iteration, we increment addresses by 4
+	addi $t4, $t4, 4
+	bne $s2, $t4, b				#if we did not reach to the end, we go back and check values again
+	
+c:	la $a0, prompt6
+	li $v0, 4
+	syscall					#printing "Two halfes are identical"
+	j e
+
+d:	la $a0, prompt5
+	li $v0, 4
+	syscall					#printing "Two halfes are not identical"
+
+e:	jr $ra
+
+li $v0,10  					# system call to exit
+syscall						#bye bye
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+	.data
+array:		.space 80
+prompt1:	.asciiz "How many numbers you want in your array? Enter: "
+prompt2:	.asciiz "Please enter a number between 0 and 20: "
+prompt3:	.asciiz "Enter number: "
+prompt4:	.asciiz "Array: "
+prompt5:	.asciiz "Two halfes are not identical"
+prompt6:	.asciiz "Two halfes are identical"
+empty:		.asciiz " "
+endl:		.asciiz "\n"
+
+# End of CheckBothHalfsIdentical.asm
+
+#########################################################
+####################### Part 3:ArithmeticExpression
+#########################################################
+	.text		
+.globl __start
+ 
+__start:			# execution starts here
+
+	la $a0, prompt1
+	li $v0, 4
+	syscall			# printing "Enter a: "
+
+	li $v0, 5
+	syscall			#Waiting for user to enter a
+
+	add $s0, $v0, $0
+
+	la $a0, prompt2
+	li $v0, 4
+	syscall			# printing "Enter b: "
+
+	li $v0, 5
+	syscall			#Waiting for user to enter b
+
+	add $s1, $v0, $0
+
+	la $a0, prompt3
+	li $v0, 4		# printing "Enter c: "
+	syscall
+
+	li $v0, 5
+	syscall			#Waiting for user to enter c
+
+	add $s2, $v0, $0
+
+	sub $t0, $s1, $s2	#(b-c)
+	mult $t0, $s0		#a*(b-c)
+	mflo $t0		#$t0 = a*(b-c)
+
+	addi $t1, $0, 16	#$t1 = 16
+	div $t0, $t1		#a*(b-c)%16
+
+	mfhi $t0		#$t0 = a*(b-c)%16
+
+	la $a0, prompt4		#printing "Result of (a*(b-c))%16: "
+	li $v0, 4
+	syscall
+
+	add $a0, $t0, $0
+	li $v0, 1
+	syscall			#printing the result
+
+	li $v0,10  		#system call to exit
+	syscall			#bye bye
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+	.data
+prompt1:	.asciiz "Enter a: "
+prompt2:	.asciiz "Enter b: "
+prompt3:	.asciiz "Enter c: "
+prompt4:	.asciiz "Result of (a*(b-c))%16: "
+
+##
+## end of ArithmeticExpression.asm
