@@ -1,5 +1,6 @@
 # cs224_labs
 These are my submissions to labs of CS-224 course given in İhsan Doğramacı Bilkent University, in 2021-2022 Spring Semester.
+
 //////IMPORTANT//////
 It should be noted that these solutions to assignments, with its goods and bads, with its working parts and broken parts, are shared for innocent purposes. It is not for students to ctrl+c ctrl+v the code, not that it would fit their assignments or work in any way. Do NOT PLAGIARIZE. If you are on the edge of plagiarizing, either get away from that edge or drop the course. I do NOT accept ANY responsibility in such a situation!
 /////////////////////
